@@ -1,0 +1,9 @@
+DEBUG:root:API scrpit started
+ERROR:fastapi:Form data requires "python-multipart" to be installed. 
+You can install "python-multipart" with: 
+
+pip install python-multipart
+
+DEBUG:root:API scrpit started
+DEBUG:root:API scrpit started
+DEBUG:asyncio:Using proactor: IocpProactor
