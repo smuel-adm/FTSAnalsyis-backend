@@ -1,5 +1,10 @@
 # FTSAnalsyis-backend
 
+## Install dependencies
+
+```
+pip install -r .\requirements.txt
+```
 
 ## Dependencies
 
@@ -11,40 +16,23 @@ https://www.python.org/downloads/windows/
 
 https://fastapi.tiangolo.com/
 
-```
-pip install "fastapi[standard]"
-```
-
 #### pandas
 
 https://pandas.pydata.org/
-
-```
-pip install pandas
-```
 
 #### matplotlib
 
 https://matplotlib.org/
 
-```
-pip install matplotlib
-```
-
 #### python-multipart
 
 https://pypi.org/project/python-multipart/
-
-```
-pip install python-multipart
-```
 
 #### uvicorn
 
 https://www.uvicorn.org/
 
-```
-pip install uvicorn
-```
+#### openpyxl
 
+https://pypi.org/project/openpyxl/
 
