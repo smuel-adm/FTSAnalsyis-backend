@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io, os
 import logging
-import time
+import numpy as np
 
 logging.basicConfig(filename='api_log.txt',level=logging.DEBUG)
 logging.debug("API scrpit started")
@@ -16,7 +16,7 @@ app.mount("/static", StaticFiles(directory="."), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
-    return JSONResponse(status_code= 200, content={"message": "server os working"})
+    return JSONResponse(status_code= 200, content={"message": "server is working"})
 
 def find_failed_tests(row, benchmarks):
     failed_tests = []
@@ -48,35 +48,34 @@ async def analyse_file(file: UploadFile = File(...)):
         benchmarks = df.iloc[:8]
         data = df.iloc[8:]
         
+        data.replace([np.inf, -np.inf], np.nan, inplace= True)
+        data.fillna(0,inplace=True)
+        benchmarks.replace([np.inf,-np.inf], np.nan,inplace=True)
+        benchmarks.fillna(0, inplace=True)
+        
         #filtering ng products
         ng_products = data[data['Judgement'] == 'NG']
         ng_products['Failed Tests'] = ng_products.apply(lambda row: find_failed_tests(row, benchmarks), axis=1)
         
-        all_failed_tests = [test.split(' (')[0] for tests in ng_products['Failed Tests'] for test in tests]
-        test_failure_count = pd.Series(all_failed_tests).value_counts()
+        test_failures = []
+        for test in ng_products['Failed Tests'].explode().unique():
+            failed_products = ng_products[ng_products['Failed Tests'].apply(lambda tests: test in tests)]
+            
+            products = []
+            for product_code, product_data in failed_products.groupby("Product Code"):
+                failure_count = product_data['Failed Tests'].apply(lambda x:x.count(test)).sum()
+                products.append({"product_code":product_code,"failures": int(failure_count)})
+                
+            test_failures.append({
+                "test_name":test,
+                "total_failures":int(len(failed_products)),
+                "products":products
+            })
+            
+            top_failures = sorted(test_failures, key=lambda x:x['total_failures'],reverse=True)[:15]
+            
+        return JSONResponse(content={"tests":top_failures})
         
-        top_15_failed_tests = test_failure_count.nlargest(15)
-        
-        plt.figure(figsize=(15, 6))
-        top_15_failed_tests.plot(kind='bar')
-        plt.title('Number of failures per test')
-        plt.xlabel('Test Name')
-        plt.ylabel('Number of Failures')
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        
-        output_path = f'FTS_Analysis_{int(time.time())}.png'
-        plt.savefig(output_path, format='png')
-        plt.close()
-        
-        most_failed_test = test_failure_count.idxmax()
-        latest_output_path = output_path
-        
-        return {
-            "message": "Analysis complete",
-            "most_frequently_failed_test": most_failed_test,
-            "plot_url": f"/static/{output_path}"
-        }
     except Exception as e:
         logger.error(f"Error processing file: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -91,4 +90,4 @@ async def get_plot():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8888)
+    uvicorn.run(app, host="0.0.0.0", port=8888)
